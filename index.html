@@ -1021,33 +1021,20 @@
     function nextPole() {
       currentPole = (currentPole + 1) % poles.length;
       renderPole(currentPole);
-      resetAutoPlay();
     }
 
     function prevPole() {
       currentPole = (currentPole - 1 + poles.length) % poles.length;
       renderPole(currentPole);
-      resetAutoPlay();
     }
 
     function goToPole(index) {
       currentPole = index;
       renderPole(currentPole);
-      resetAutoPlay();
     }
 
-    function startAutoPlay() {
-      poleInterval = setInterval(nextPole, 5000);
-    }
-
-    function resetAutoPlay() {
-      clearInterval(poleInterval);
-      startAutoPlay();
-    }
-
-    // Initialiser le carousel
+    // Initialiser le carousel sans autoplay
     renderPole(0);
-    startAutoPlay();
 
     currentStep = 1;
     renderCurrentSlide();
