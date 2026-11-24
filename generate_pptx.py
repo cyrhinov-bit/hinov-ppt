@@ -375,6 +375,7 @@ def create_presentation():
     for i, (pole_title, items) in enumerate(poles):
         sp = prs.slides.add_slide(blank_layout)
         add_header(sp, 4 + i, "Domaines d'Expertise", "Expertise")
+        sp.shapes.add_picture(os.path.abspath("assets/servives.png"), Inches(0.8), Inches(1.2), height=Inches(0.8))
         # Conteneur unique
         container = sp.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.5), Inches(2.2), Inches(10.0), Inches(3.6))
         container.fill.solid()
