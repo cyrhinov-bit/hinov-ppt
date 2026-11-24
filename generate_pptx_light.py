@@ -3,8 +3,10 @@ import pptx
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN
+from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
+from pptx.oxml.ns import qn
+from lxml import etree
 
 def create_light_presentation():
     prs = Presentation()
@@ -13,19 +15,17 @@ def create_light_presentation():
     prs.slide_height = Inches(7.5)
     blank_layout = prs.slide_layouts[6]
 
-    # Theme Colors - Light Institution Palette
+    # Palette HINOV GROUP — couleurs extraites du logo (assets/logo.png)
     COLOR_BG = RGBColor(248, 250, 252)       # #F8FAFC Pure Slate Light
     COLOR_CARD = RGBColor(255, 255, 255)     # #FFFFFF Pure White
     COLOR_PRIMARY = RGBColor(15, 44, 89)     # #0F2C59 Deep Navy Text/Headers
-    COLOR_CYAN = RGBColor(2, 132, 199)       # #0284C7 Azure / Tech Blue
-    COLOR_EMERALD = RGBColor(5, 150, 105)    # #059669 Health Emerald
+    COLOR_GREEN = RGBColor(74, 208, 123)     # #4AD07B Hinov Green (logo)
     COLOR_TEXT = RGBColor(51, 65, 85)        # #334155 Slate 700 Dark Text
     COLOR_MUTED = RGBColor(100, 116, 139)    # #64748B Slate 500 Subtext
     COLOR_BORDER = RGBColor(226, 232, 240)   # #E2E8F0 Soft Border
-    COLOR_HEADER_BG = RGBColor(255, 255, 255)# White Header Bar
+    COLOR_HEADER_BG = RGBColor(255, 255, 255) # White Header Bar
 
-    logo_sante_path = os.path.abspath("assets/logo_sante.png")
-    logo_disd_path = os.path.abspath("assets/logo_disd.png")
+    logo_hinov_path = os.path.abspath("assets/logo.png")
 
     def set_slide_background(slide):
         bg = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, Inches(13.333), Inches(7.5))
@@ -34,30 +34,26 @@ def create_light_presentation():
         bg.line.fill.background()
         return bg
 
-    def add_header(slide, slide_num, slide_title, category="PROJET STRATÉGIQUE"):
+    def add_header(slide, slide_num, slide_title, category="HINOV GROUP"):
         set_slide_background(slide)
 
-        # Header Bar Container (Light)
         hdr = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, Inches(13.333), Inches(1.1))
         hdr.fill.solid()
         hdr.fill.fore_color.rgb = COLOR_HEADER_BG
         hdr.line.color.rgb = COLOR_BORDER
 
-        # Add logos if present
-        if os.path.exists(logo_sante_path):
-            slide.shapes.add_picture(logo_sante_path, Inches(0.4), Inches(0.15), height=Inches(0.8))
-        if os.path.exists(logo_disd_path):
-            slide.shapes.add_picture(logo_disd_path, Inches(11.8), Inches(0.15), height=Inches(0.8))
+        if os.path.exists(logo_hinov_path):
+            slide.shapes.add_picture(logo_hinov_path, Inches(0.4), Inches(0.18), height=Inches(0.78))
 
-        # Header Title in center
-        txBox = slide.shapes.add_textbox(Inches(2.5), Inches(0.1), Inches(8.333), Inches(0.9))
+        txBox = slide.shapes.add_textbox(Inches(2.5), Inches(0.1), Inches(8.333), Inches(0.95))
         tf = txBox.text_frame
         tf.word_wrap = True
+        
         p1 = tf.paragraphs[0]
-        p1.text = f"{slide_num:02d} | {category.upper()}"
-        p1.font.size = Pt(11)
+        p1.text = f"{slide_num:02d}  •  {category.upper()}"
+        p1.font.size = Pt(10)
         p1.font.bold = True
-        p1.font.color.rgb = COLOR_CYAN
+        p1.font.color.rgb = COLOR_GREEN
         p1.alignment = PP_ALIGN.CENTER
 
         p2 = tf.add_paragraph()
@@ -67,7 +63,6 @@ def create_light_presentation():
         p2.font.color.rgb = COLOR_PRIMARY
         p2.alignment = PP_ALIGN.CENTER
 
-        # Footer Bar
         ftr = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, Inches(6.9), Inches(13.333), Inches(0.6))
         ftr.fill.solid()
         ftr.fill.fore_color.rgb = COLOR_HEADER_BG
@@ -76,12 +71,13 @@ def create_light_presentation():
         ftr_tx = slide.shapes.add_textbox(Inches(0.5), Inches(6.95), Inches(12.333), Inches(0.5))
         ftr_tf = ftr_tx.text_frame
         p_ftr = ftr_tf.paragraphs[0]
-        p_ftr.text = "Ministère de la Santé, de l'Hygiène Publique et de la CMU — Direction de l'Informatique et de la Santé Digitale (DISD)"
+        p_ftr.text = "HINOV GROUP — Abidjan, Côte d'Ivoire"
         p_ftr.font.size = Pt(10)
+        p_ftr.font.bold = True
         p_ftr.font.color.rgb = COLOR_MUTED
         p_ftr.alignment = PP_ALIGN.CENTER
 
-    def add_card(slide, left, top, width, height, title, subtitle, icon="🔹", accent_color=COLOR_CYAN):
+    def add_card(slide, left, top, width, height, title, subtitle, icon="💡", accent_color=COLOR_GREEN):
         card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, top, width, height)
         card.fill.solid()
         card.fill.fore_color.rgb = COLOR_CARD
@@ -105,300 +101,553 @@ def create_light_presentation():
         p2.space_before = Pt(8)
         return card
 
-    # ==================== SLIDE 1: Title / Garde ====================
+    def _add_entrance_fade_animations(slide, shape_ids, delays_ms):
+        """Ajoute des animations d'entrée (fade) séquentielles sur une liste de formes."""
+        ns_p = 'http://schemas.openxmlformats.org/presentationml/2006/main'
+
+        timing = etree.Element(qn('p:timing'))
+        tnLst = etree.SubElement(timing, qn('p:tnLst'))
+        par_root = etree.SubElement(tnLst, qn('p:par'))
+        cTn_root = etree.SubElement(par_root, qn('p:cTn'))
+        cTn_root.set('id', '1')
+        cTn_root.set('dur', 'indefinite')
+        cTn_root.set('restart', 'never')
+        cTn_root.set('nodeType', 'tmRoot')
+        childTnLst_root = etree.SubElement(cTn_root, qn('p:childTnLst'))
+        seq = etree.SubElement(childTnLst_root, qn('p:seq'))
+        seq.set('concurrent', '1')
+        seq.set('nextAc', 'seek')
+        cTn_main = etree.SubElement(seq, qn('p:cTn'))
+        cTn_main.set('id', '2')
+        cTn_main.set('dur', 'indefinite')
+        cTn_main.set('nodeType', 'mainSeq')
+        childTnLst_main = etree.SubElement(cTn_main, qn('p:childTnLst'))
+
+        cid = 3
+        for spid, delay in zip(shape_ids, delays_ms):
+            # --- État initial : masquer la forme (visibility = hidden) ---
+            par_hide = etree.SubElement(childTnLst_main, qn('p:par'))
+            cTn_h = etree.SubElement(par_hide, qn('p:cTn'))
+            cTn_h.set('id', str(cid)); cid += 1
+            cTn_h.set('fill', 'hold')
+            stCondLst_h = etree.SubElement(cTn_h, qn('p:stCondLst'))
+            cond_h = etree.SubElement(stCondLst_h, qn('p:cond'))
+            cond_h.set('delay', '0')
+            childTnLst_h = etree.SubElement(cTn_h, qn('p:childTnLst'))
+            par_h = etree.SubElement(childTnLst_h, qn('p:par'))
+            cTn_h2 = etree.SubElement(par_h, qn('p:cTn'))
+            cTn_h2.set('id', str(cid)); cid += 1
+            cTn_h2.set('fill', 'hold')
+            stCondLst_h2 = etree.SubElement(cTn_h2, qn('p:stCondLst'))
+            cond_h2 = etree.SubElement(stCondLst_h2, qn('p:cond'))
+            cond_h2.set('delay', '0')
+            childTnLst_h2 = etree.SubElement(cTn_h2, qn('p:childTnLst'))
+            par_h3 = etree.SubElement(childTnLst_h2, qn('p:par'))
+            cTn_h3 = etree.SubElement(par_h3, qn('p:cTn'))
+            cTn_h3.set('id', str(cid)); cid += 1
+            cTn_h3.set('presetID', '42')
+            cTn_h3.set('presetClass', 'entr')
+            cTn_h3.set('presetSubtype', '0')
+            cTn_h3.set('fill', 'hold')
+            cTn_h3.set('grpId', '0')
+            cTn_h3.set('nodeType', 'clickEffect')
+            stCondLst_h3 = etree.SubElement(cTn_h3, qn('p:stCondLst'))
+            cond_h3 = etree.SubElement(stCondLst_h3, qn('p:cond'))
+            cond_h3.set('delay', '0')
+            childTnLst_h3 = etree.SubElement(cTn_h3, qn('p:childTnLst'))
+            set_h = etree.SubElement(childTnLst_h3, qn('p:set'))
+            cBhvr_h = etree.SubElement(set_h, qn('p:cBhvr'))
+            cTn_hb = etree.SubElement(cBhvr_h, qn('p:cTn'))
+            cTn_hb.set('id', str(cid)); cid += 1
+            cTn_hb.set('dur', '1')
+            cTn_hb.set('fill', 'hold')
+            stCondLst_hb = etree.SubElement(cTn_hb, qn('p:stCondLst'))
+            cond_hb = etree.SubElement(stCondLst_hb, qn('p:cond'))
+            cond_hb.set('delay', '0')
+            tgtEl_h = etree.SubElement(cBhvr_h, qn('p:tgtEl'))
+            spTgt_h = etree.SubElement(tgtEl_h, qn('p:spTgt'))
+            spTgt_h.set('spid', str(spid))
+            attrNameLst_h = etree.SubElement(cBhvr_h, qn('p:attrNameLst'))
+            attrName_h = etree.SubElement(attrNameLst_h, qn('p:attrName'))
+            attrName_h.text = 'style.visibility'
+            to_h = etree.SubElement(set_h, qn('p:to'))
+            strVal_h = etree.SubElement(to_h, qn('p:strVal'))
+            strVal_h.set('val', 'hidden')
+
+            # --- Apparition (fade) au délai donné ---
+            par_show = etree.SubElement(childTnLst_main, qn('p:par'))
+            cTn_w = etree.SubElement(par_show, qn('p:cTn'))
+            cTn_w.set('id', str(cid)); cid += 1
+            cTn_w.set('fill', 'hold')
+            stCondLst_w = etree.SubElement(cTn_w, qn('p:stCondLst'))
+            cond_w = etree.SubElement(stCondLst_w, qn('p:cond'))
+            cond_w.set('delay', '0')
+            childTnLst_w = etree.SubElement(cTn_w, qn('p:childTnLst'))
+            par_d = etree.SubElement(childTnLst_w, qn('p:par'))
+            cTn_d = etree.SubElement(par_d, qn('p:cTn'))
+            cTn_d.set('id', str(cid)); cid += 1
+            cTn_d.set('fill', 'hold')
+            stCondLst_d = etree.SubElement(cTn_d, qn('p:stCondLst'))
+            cond_d = etree.SubElement(stCondLst_d, qn('p:cond'))
+            cond_d.set('delay', str(delay))
+            childTnLst_d = etree.SubElement(cTn_d, qn('p:childTnLst'))
+            par_fx = etree.SubElement(childTnLst_d, qn('p:par'))
+            cTn_fx = etree.SubElement(par_fx, qn('p:cTn'))
+            cTn_fx.set('id', str(cid)); cid += 1
+            cTn_fx.set('presetID', '42')
+            cTn_fx.set('presetClass', 'entr')
+            cTn_fx.set('presetSubtype', '0')
+            cTn_fx.set('fill', 'hold')
+            cTn_fx.set('grpId', '0')
+            cTn_fx.set('nodeType', 'clickEffect')
+            stCondLst_fx = etree.SubElement(cTn_fx, qn('p:stCondLst'))
+            cond_fx = etree.SubElement(stCondLst_fx, qn('p:cond'))
+            cond_fx.set('delay', '0')
+            childTnLst_fx = etree.SubElement(cTn_fx, qn('p:childTnLst'))
+            set_v = etree.SubElement(childTnLst_fx, qn('p:set'))
+            cBhvr_v = etree.SubElement(set_v, qn('p:cBhvr'))
+            cTn_v = etree.SubElement(cBhvr_v, qn('p:cTn'))
+            cTn_v.set('id', str(cid)); cid += 1
+            cTn_v.set('dur', '1')
+            cTn_v.set('fill', 'hold')
+            stCondLst_v = etree.SubElement(cTn_v, qn('p:stCondLst'))
+            cond_v = etree.SubElement(stCondLst_v, qn('p:cond'))
+            cond_v.set('delay', '0')
+            tgtEl_v = etree.SubElement(cBhvr_v, qn('p:tgtEl'))
+            spTgt_v = etree.SubElement(tgtEl_v, qn('p:spTgt'))
+            spTgt_v.set('spid', str(spid))
+            attrNameLst_v = etree.SubElement(cBhvr_v, qn('p:attrNameLst'))
+            attrName_v = etree.SubElement(attrNameLst_v, qn('p:attrName'))
+            attrName_v.text = 'style.visibility'
+            to_v = etree.SubElement(set_v, qn('p:to'))
+            strVal_v = etree.SubElement(to_v, qn('p:strVal'))
+            strVal_v.set('val', 'visible')
+            fade = etree.SubElement(childTnLst_fx, qn('p:fade'))
+            cBhvr_f = etree.SubElement(fade, qn('p:cBhvr'))
+            cTn_f = etree.SubElement(cBhvr_f, qn('p:cTn'))
+            cTn_f.set('id', str(cid)); cid += 1
+            cTn_f.set('dur', '1000')
+            cTn_f.set('fill', 'hold')
+            stCondLst_f = etree.SubElement(cTn_f, qn('p:stCondLst'))
+            cond_f = etree.SubElement(stCondLst_f, qn('p:cond'))
+            cond_f.set('delay', '0')
+            tgtEl_f = etree.SubElement(cBhvr_f, qn('p:tgtEl'))
+            spTgt_f = etree.SubElement(tgtEl_f, qn('p:spTgt'))
+            spTgt_f.set('spid', str(spid))
+
+        slide.element.append(timing)
+
+    # ==================== SLIDE 1: Page de Garde — HINOV GROUP ====================
     s1 = prs.slides.add_slide(blank_layout)
     set_slide_background(s1)
-    
-    if os.path.exists(logo_sante_path):
-        s1.shapes.add_picture(logo_sante_path, Inches(0.8), Inches(0.6), height=Inches(1.1))
-    if os.path.exists(logo_disd_path):
-        s1.shapes.add_picture(logo_disd_path, Inches(10.8), Inches(0.6), height=Inches(1.1))
 
-    # Title Card Left
-    tx1 = s1.shapes.add_textbox(Inches(0.8), Inches(2.0), Inches(7.5), Inches(4.5))
+    if os.path.exists(logo_hinov_path):
+        s1.shapes.add_picture(logo_hinov_path, Inches(0.6), Inches(0.2), height=Inches(0.75))
+
+    tx1 = s1.shapes.add_textbox(Inches(0.8), Inches(1.9), Inches(7.5), Inches(4.3))
     tf1 = tx1.text_frame
     tf1.word_wrap = True
-    
+
     p_badge = tf1.paragraphs[0]
-    p_badge.text = "RÉPUBLIQUE DE CÔTE D'IVOIRE — MINISTÈRE DE LA SANTÉ"
+    p_badge.text = "HINOV GROUP — PRÉSENTATION GÉNÉRALE"
     p_badge.font.size = Pt(12)
     p_badge.font.bold = True
-    p_badge.font.color.rgb = COLOR_CYAN
-    
+    p_badge.font.color.rgb = COLOR_GREEN
+    p_badge.alignment = PP_ALIGN.CENTER
+
     p_title = tf1.add_paragraph()
-    p_title.text = "PROCESSUS DE DIGITALISATION"
-    p_title.font.size = Pt(32)
+    p_title.text = "L'INNOVATION AU SERVICE DE VOTRE PERFORMANCE"
+    p_title.font.size = Pt(30)
     p_title.font.bold = True
     p_title.font.color.rgb = COLOR_PRIMARY
-    p_title.space_before = Pt(12)
+    p_title.alignment = PP_ALIGN.CENTER
+    p_title.space_before = Pt(10)
 
     p_sub = tf1.add_paragraph()
-    p_sub.text = "du système de santé en Côte d'Ivoire"
-    p_sub.font.size = Pt(22)
-    p_sub.font.color.rgb = COLOR_EMERALD
+    p_sub.text = "Solutions en technologies de l'information, infrastructures et communication"
+    p_sub.font.size = Pt(17)
+    p_sub.font.bold = True
+    p_sub.font.color.rgb = COLOR_GREEN
+    p_sub.alignment = PP_ALIGN.CENTER
     p_sub.space_before = Pt(4)
 
-    p_pres = tf1.add_paragraph()
-    p_pres.text = "\nPrésenté par : M. OUATTARA Yacouba\nIngénieur Informaticien\nDirection de l'Informatique et de la Santé Digitale (DISD)"
-    p_pres.font.size = Pt(13)
-    p_pres.font.color.rgb = COLOR_TEXT
-    p_pres.space_before = Pt(16)
+    p_meta = tf1.add_paragraph()
+    p_meta.text = "Abidjan – Côte d'Ivoire | Édition 2026"
+    p_meta.font.size = Pt(11)
+    p_meta.font.bold = True
+    p_meta.font.color.rgb = COLOR_MUTED
+    p_meta.alignment = PP_ALIGN.CENTER
+    p_meta.space_before = Pt(14)
 
-    # Visual Right Box
-    card_r = s1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(8.6), Inches(2.0), Inches(3.9), Inches(4.5))
+    p_pres = tf1.add_paragraph()
+    p_pres.text = "HINOV GROUP"
+    p_pres.font.size = Pt(13)
+    p_pres.font.bold = True
+    p_pres.font.color.rgb = COLOR_TEXT
+    p_pres.alignment = PP_ALIGN.CENTER
+    p_pres.space_before = Pt(14)
+
+    p_pres2 = tf1.add_paragraph()
+    p_pres2.text = "L'innovation au service de votre performance."
+    p_pres2.font.size = Pt(13)
+    p_pres2.font.color.rgb = COLOR_TEXT
+    p_pres2.alignment = PP_ALIGN.CENTER
+
+    card_r = s1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(8.6), Inches(1.9), Inches(3.9), Inches(4.8))
     card_r.fill.solid()
     card_r.fill.fore_color.rgb = COLOR_CARD
     card_r.line.color.rgb = RGBColor(186, 230, 253)
     card_r.line.width = Pt(2)
 
-    tx_r = s1.shapes.add_textbox(Inches(8.8), Inches(2.3), Inches(3.5), Inches(4.0))
+    tx_r = s1.shapes.add_textbox(Inches(8.8), Inches(2.2), Inches(3.5), Inches(4.2))
     tf_r = tx_r.text_frame
     tf_r.word_wrap = True
+    tf_r.vertical_anchor = MSO_ANCHOR.MIDDLE
     p_rt = tf_r.paragraphs[0]
-    p_rt.text = "🏥  TRANSFORMATION DIGITALE"
-    p_rt.font.size = Pt(16)
+    p_rt.text = "« L'innovation au service de votre performance. »"
+    p_rt.font.size = Pt(14)
     p_rt.font.bold = True
-    p_rt.font.color.rgb = COLOR_CYAN
+    p_rt.font.color.rgb = COLOR_PRIMARY
     p_rt.alignment = PP_ALIGN.CENTER
+    p_rt.space_before = Pt(10)
 
     p_rc = tf_r.add_paragraph()
-    p_rc.text = "\n• Datacenter National Haute Disponibilité\n\n• Interopérabilité des Établissements Hospitaliers\n\n• Centralisation et Sécurité des Données Sanitaires\n\n• Outils Modernes d'Aide à la Prise de Décision"
-    p_rc.font.size = Pt(12)
+    p_rc.text = "HINOV GROUP accompagne les entreprises, les administrations et les organisations dans leurs besoins en équipements informatiques, infrastructures technologiques et solutions de communication."
+    p_rc.font.size = Pt(10)
     p_rc.font.color.rgb = COLOR_TEXT
+    p_rc.alignment = PP_ALIGN.CENTER
+    p_rc.space_before = Pt(10)
 
-    # ==================== SLIDE 2: Introduction ====================
+    s1.shapes.add_picture(os.path.abspath("assets/img_hinov_main.jpeg"), Inches(0.8), Inches(6.35), height=Inches(1.15))
+
+    # ==================== SLIDE 2: Notre Vision ====================
     s2 = prs.slides.add_slide(blank_layout)
-    add_header(s2, 2, "Introduction & Piliers Stratégiques", "Contexte Stratégique")
+    add_header(s2, 2, "Notre Vision", "Vision Stratégique")
 
-    b2 = s2.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.5), Inches(1.5), Inches(10.333), Inches(1.0))
+    b2 = s2.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.2), Inches(1.4), Inches(10.9), Inches(1.2))
     b2.fill.solid()
     b2.fill.fore_color.rgb = COLOR_CARD
-    b2.line.color.rgb = COLOR_CYAN
-    b2_tx = s2.shapes.add_textbox(Inches(1.6), Inches(1.55), Inches(10.133), Inches(0.9))
+    b2.line.color.rgb = COLOR_GREEN
+    b2.line.width = Pt(2)
+    b2_tx = s2.shapes.add_textbox(Inches(1.3), Inches(1.45), Inches(10.7), Inches(0.8))
     b2_tf = b2_tx.text_frame
     b2_tf.word_wrap = True
     p_b2 = b2_tf.paragraphs[0]
-    p_b2.text = "Depuis 2021, le MSHPCMU accélère l'intégration du numérique dans le Système National d'Information Sanitaire (SNIS)."
-    p_b2.font.size = Pt(15)
+    p_b2.text = "Devenir un acteur de référence en Côte d'Ivoire dans les domaines de l'informatique, des infrastructures technologiques, de la communication et des solutions numériques."
+    p_b2.font.size = Pt(13)
     p_b2.font.bold = True
     p_b2.font.color.rgb = COLOR_PRIMARY
     p_b2.alignment = PP_ALIGN.CENTER
 
-    w4 = Inches(2.7)
-    add_card(s2, Inches(0.8), Inches(2.8), w4, Inches(3.6), "Qualité des données", "Améliorer la qualité, la fiabilité et la promptitude des statistiques sanitaires collectées.", "💾", COLOR_CYAN)
-    add_card(s2, Inches(3.8), Inches(2.8), w4, Inches(3.6), "Prise de décision", "Faciliter le pilotage stratégique et opérationnel basé sur des indicateurs en temps réel.", "📊", RGBColor(126, 34, 206))
-    add_card(s2, Inches(6.8), Inches(2.8), w4, Inches(3.6), "Prise en charge", "Fluidifier le parcours patient et optimiser la continuité des soins dans les établissements.", "🏥", COLOR_EMERALD)
-    add_card(s2, Inches(9.8), Inches(2.8), w4, Inches(3.6), "Modernisation", "Moderniser et pérenniser globalement le système d'information de santé national.", "💻", COLOR_CYAN)
+    add_card(s2, Inches(1.2), Inches(2.9), Inches(5.3), Inches(1.9), "Notre Ambition", "Devenir un acteur de référence en Côte d'Ivoire dans les domaines de l'informatique, des infrastructures technologiques, de la communication et des solutions numériques.", "🎯", COLOR_GREEN)
+    add_card(s2, Inches(6.8), Inches(2.9), Inches(5.3), Inches(1.9), "Notre Contribution", "Contribuer à la modernisation des entreprises en leur apportant des équipements performants, des services de qualité et des solutions innovantes.", "🚀", COLOR_GREEN)
 
-    # ==================== SLIDE 3: Le Datacenter ====================
+    s2.shapes.add_picture(os.path.abspath("assets/img_vision.jpeg"), Inches(1.2), Inches(5.9), height=Inches(1.2))
+
+    # ==================== SLIDE 3: Notre Mission ====================
     s3 = prs.slides.add_slide(blank_layout)
-    add_header(s3, 3, "Le Datacenter — Cœur Technique", "Infrastructure")
+    add_header(s3, 3, "Notre Mission", "Engagement")
 
-    center_hub = s3.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(4.9), Inches(2.7), Inches(3.5), Inches(2.2))
-    center_hub.fill.solid()
-    center_hub.fill.fore_color.rgb = COLOR_CARD
-    center_hub.line.color.rgb = COLOR_CYAN
-    center_hub.line.width = Pt(3)
+    add_card(s3, Inches(1.2), Inches(1.6), Inches(11.0), Inches(2.6), "Notre Mission", "Notre mission consiste à accompagner les entreprises et les institutions dans la mise en place, l'exploitation et l'amélioration de leur environnement informatique et numérique.", "🎯", COLOR_GREEN)
+    add_card(s3, Inches(1.2), Inches(4.8), Inches(11.0), Inches(2.6), "Nos Engagements", "Pour atteindre cet objectif, nous nous engageons à : fournir des équipements de qualité, proposer des solutions adaptées, assurer la maintenance, accompagner la gestion des infrastructures, concevoir et déployer des solutions numériques, développer des solutions de communication et de visibilité digitale.", "🤝", COLOR_GREEN)
 
-    c_tx = s3.shapes.add_textbox(Inches(5.0), Inches(2.9), Inches(3.3), Inches(1.8))
-    c_tf = c_tx.text_frame
-    c_tf.word_wrap = True
-    p_c1 = c_tf.paragraphs[0]
-    p_c1.text = "🖥️  DATACENTER"
-    p_c1.font.size = Pt(18)
-    p_c1.font.bold = True
-    p_c1.font.color.rgb = COLOR_CYAN
-    p_c1.alignment = PP_ALIGN.CENTER
-    p_c2 = c_tf.add_paragraph()
-    p_c2.text = "Noyau de Gestion des Données de Santé"
-    p_c2.font.size = Pt(11)
-    p_c2.font.color.rgb = COLOR_PRIMARY
-    p_c2.alignment = PP_ALIGN.CENTER
+    s3.shapes.add_picture(os.path.abspath("assets/img_mission.jpeg"), Inches(0.8), Inches(0.55), height=Inches(0.9))
 
-    add_card(s3, Inches(4.9), Inches(1.35), Inches(3.5), Inches(1.15), "Centraliser les données", "Entrepôt unifié national", "💾", COLOR_CYAN)
-    add_card(s3, Inches(0.8), Inches(3.2), Inches(3.6), Inches(1.3), "Sécuriser les informations", "Confidentialité, résilience et PSSI", "🔒", COLOR_EMERALD)
-    add_card(s3, Inches(8.9), Inches(3.2), Inches(3.6), Inches(1.3), "Déployer des systèmes intégrés", "Interopérabilité et communication", "⚙️", RGBColor(126, 34, 206))
-    add_card(s3, Inches(4.9), Inches(5.15), Inches(3.5), Inches(1.2), "Moderniser les outils", "Outils de gestion performants", "🖥️", COLOR_CYAN)
+    # ==================== SLIDES 4-6: Domaines d'Expertise (3 pôles, même carte) ====================
+    poles = [
+        ("Pôle 1 — Équipements & Systèmes", [
+            ("Vente & Fourniture", "Équipements informatiques et bureautiques.", "💻"),
+            ("Infogérance", "Disponibilité, sécurité et performance des systèmes.", "🛡️"),
+            ("Maintenance", "Diagnostic, réparation et maintenance corrective.", "🔧"),
+        ]),
+        ("Pôle 2 — Réseaux & Développement", [
+            ("Câblage IT & Télécom", "Installation d'infrastructures réseau et téléphonique.", "🌐"),
+            ("Développement", "Solutions informatiques sur mesure.", "💻"),
+            ("Vidéosurveillance", "Fourniture et installation de solutions.", "🛡️"),
+        ]),
+        ("Pôle 3 — Communication & Imprimerie", [
+            ("Communication & Imprimerie", "Conception graphique, impression et supports.", "🖨️"),
+        ]),
+    ]
+    card_left = Inches(1.7)
+    card_top = Inches(2.4)
+    card_width = Inches(9.6)
+    card_height = Inches(3.2)
+    for i, (pole_title, items) in enumerate(poles):
+        sp = prs.slides.add_slide(blank_layout)
+        add_header(sp, 4 + i, "Domaines d'Expertise", "Expertise")
+        # Conteneur unique
+        container = sp.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.5), Inches(2.2), Inches(10.0), Inches(3.6))
+        container.fill.solid()
+        container.fill.fore_color.rgb = COLOR_CARD
+        container.line.color.rgb = COLOR_BORDER
+        container.line.width = Pt(2)
+        container.shadow.inherit = False
+        # Carte unique (même emplacement sur chaque slide)
+        card = sp.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, card_left, card_top, card_width, card_height)
+        card.fill.solid()
+        card.fill.fore_color.rgb = COLOR_CARD
+        card.line.color.rgb = COLOR_GREEN
+        card.line.width = Pt(1.5)
+        card.shadow.inherit = False
+        tf = card.text_frame
+        tf.word_wrap = True
+        tf.margin_left = Inches(0.3)
+        tf.margin_right = Inches(0.3)
+        tf.margin_top = Inches(0.2)
+        tf.margin_bottom = Inches(0.2)
+        p_pole = tf.paragraphs[0]
+        p_pole.text = pole_title
+        p_pole.font.size = Pt(18)
+        p_pole.font.bold = True
+        p_pole.font.color.rgb = COLOR_GREEN
+        p_pole.alignment = PP_ALIGN.CENTER
+        p_pole.space_before = Pt(8)
+        for title, sub, icon in items:
+            p1 = tf.add_paragraph()
+            p1.text = f"{icon}  {title}"
+            p1.font.size = Pt(14)
+            p1.font.bold = True
+            p1.font.color.rgb = COLOR_GREEN
+            p1.alignment = PP_ALIGN.CENTER
+            p1.space_before = Pt(6)
+            p2 = tf.add_paragraph()
+            p2.text = sub
+            p2.font.size = Pt(12)
+            p2.font.color.rgb = COLOR_MUTED
+            p2.alignment = PP_ALIGN.CENTER
+            p2.space_before = Pt(4)
+        # Indicateur de progression
+        tx_prog = sp.shapes.add_textbox(Inches(10.8), Inches(6.4), Inches(2.2), Inches(0.4))
+        tf_prog = tx_prog.text_frame
+        p_prog = tf_prog.paragraphs[0]
+        p_prog.text = f"{i + 1}/{len(poles)}"
+        p_prog.font.size = Pt(10)
+        p_prog.font.color.rgb = COLOR_MUTED
+        p_prog.alignment = PP_ALIGN.RIGHT
+        # Transition automatique après 5 secondes
+        transition = etree.SubElement(sp.element, qn('p:transition'))
+        transition.set('spd', 'med')
+        transition.set('adv', '1')
+        transition.set('advTm', '5000')
+        etree.SubElement(transition, qn('p:fade'))
 
-    # ==================== SLIDE 4: Politique de Digitalisation ====================
-    s4 = prs.slides.add_slide(blank_layout)
-    add_header(s4, 4, "Politique de Digitalisation", "Vision Sectorielle")
-
-    add_card(s4, Inches(0.8), Inches(1.4), Inches(3.6), Inches(1.2), "Administration", "Pilotage RH, finances et gouvernance", "🏢", COLOR_CYAN)
-    add_card(s4, Inches(4.8), Inches(1.4), Inches(3.7), Inches(1.2), "DIGITALISATION GLOBALE", "Convergence des deux versants", "🌐", COLOR_EMERALD)
-    add_card(s4, Inches(8.9), Inches(1.4), Inches(3.6), Inches(1.2), "Offre de soins", "Hôpitaux, cliniques et consultations", "🏥", COLOR_CYAN)
-
-    add_card(s4, Inches(0.8), Inches(2.9), Inches(2.7), Inches(3.5), "Projets & Apps", "Déploiement des logiciels hospitaliers et applicatifs métiers.", "💻", COLOR_CYAN)
-    add_card(s4, Inches(3.8), Inches(2.9), Inches(2.7), Inches(3.5), "Sécurité des SI", "Application rigoureuse de la PSSI et audits de cyberdéfense.", "🔐", COLOR_EMERALD)
-    add_card(s4, Inches(6.8), Inches(2.9), Inches(2.7), Inches(3.5), "Archivage Numérique", "Gestion électronique des documents (GED) et traçabilité.", "📁", RGBColor(126, 34, 206))
-    add_card(s4, Inches(9.8), Inches(2.9), Inches(2.7), Inches(3.5), "Données Centralisées", "Consolidation nationale pour un pilotage sanitaire continu.", "☁️", COLOR_CYAN)
-
-    # ==================== SLIDE 5: Transformation du SNIS ====================
+    # ==================== SLIDE 7: Nos Engagements ====================
     s5 = prs.slides.add_slide(blank_layout)
-    add_header(s5, 5, "Transformation du SNIS", "Écosystème Applicatif")
+    add_header(s5, 7, "Nos Engagements", "Engagement")
 
-    b5 = s5.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.5), Inches(1.4), Inches(10.333), Inches(0.9))
-    b5.fill.solid()
-    b5.fill.fore_color.rgb = COLOR_CARD
-    b5.line.color.rgb = COLOR_CYAN
-    b5_tx = s5.shapes.add_textbox(Inches(1.6), Inches(1.45), Inches(10.133), Inches(0.8))
-    p_b5 = b5_tx.text_frame.paragraphs[0]
-    p_b5.text = "🎯 Le SNIS évolue pour rendre les informations sanitaires : DISPONIBLES • FIABLES • ACCESSIBLES À TEMPS"
-    p_b5.font.size = Pt(13)
-    p_b5.font.bold = True
-    p_b5.font.color.rgb = COLOR_PRIMARY
-    p_b5.alignment = PP_ALIGN.CENTER
+    engagements5 = [
+        ("Qualité", "Proposer des équipements et prestations répondant aux exigences.", "✅"),
+        ("Réactivité", "Apporter des réponses adaptées aux besoins et urgences.", "⚡"),
+        ("Professionnalisme", "Accompagnement sérieux à chaque étape des prestations.", "🤝"),
+    ]
+    for i, (title, sub, icon) in enumerate(engagements5):
+        add_card(s5, Inches(0.8 + i * 4.1), Inches(2.6), Inches(3.6), Inches(3.0), title, sub, icon, COLOR_GREEN)
 
-    w3 = Inches(3.6)
-    add_card(s5, Inches(0.8), Inches(2.6), w3, Inches(3.8), "DHIS2", "Collecte globale, agrégation et analyse des données sanitaires et indicateurs nationaux.", "📊", COLOR_CYAN)
-    add_card(s5, Inches(4.8), Inches(2.6), w3, Inches(3.8), "SIGDEP3", "Système intégré pour le suivi clinique et biologique individualisé des patients (VIH).", "👤", COLOR_EMERALD)
-    add_card(s5, Inches(8.9), Inches(2.6), w3, Inches(3.8), "OPENELIS", "Gestion informatisée des laboratoires de biologie médicale et du circuit des échantillons.", "🧪", RGBColor(126, 34, 206))
+    add_card(s5, Inches(0.8), Inches(6.0), Inches(3.6), Inches(3.0), "Respect des Engagements", "Respect des délais, des spécifications techniques et des conditions contractuelles.", "🛡️", COLOR_GREEN)
+    add_card(s5, Inches(4.9), Inches(6.0), Inches(3.6), Inches(3.0), "Satisfaction Client", "Construire des relations professionnelles durables basées sur la confiance.", "💚", COLOR_GREEN)
 
-    # ==================== SLIDE 6: Autres Solutions Numériques ====================
+    s5.shapes.add_picture(os.path.abspath("assets/img_engagement.jpeg"), Inches(0.8), Inches(6.3), height=Inches(0.9))
+
+    # ==================== SLIDE 6: Clients & Partenaires ====================
     s6 = prs.slides.add_slide(blank_layout)
-    add_header(s6, 6, "Autres Solutions Numériques", "Complémentarité Métier")
+    add_header(s6, 8, "Clients et Partenaires", "Partenaires")
 
-    w2 = Inches(5.6)
-    h2 = Inches(1.8)
-    add_card(s6, Inches(0.8), Inches(1.6), w2, h2, "E-SIGL", "Gestion logistique intégrée des pharmacies et approvisionnement en intrants stratégiques.", "💊", COLOR_CYAN)
-    add_card(s6, Inches(6.9), Inches(1.6), w2, h2, "M-SUPPLY", "Gestion des stocks et traçabilité de la dispensation des médicaments au comptoir.", "💉", COLOR_EMERALD)
-    add_card(s6, Inches(0.8), Inches(3.7), w2, h2, "UPID", "Identifiant Unique du Patient (notamment sous ARV) pour l'unicité et le suivi longitudinal.", "👤", RGBColor(126, 34, 206))
-    add_card(s6, Inches(6.9), Inches(3.7), w2, h2, "DPI", "Dossier Patient Informatisé pour la continuité des soins et l'historique médical partagé.", "📋", COLOR_CYAN)
+    card6 = s6.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.6), Inches(11.7), Inches(4.5))
+    card6.fill.solid()
+    card6.fill.fore_color.rgb = COLOR_CARD
+    card6.line.color.rgb = COLOR_BORDER
+    card6.line.width = Pt(1.5)
 
-    b6 = s6.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(2.5), Inches(5.8), Inches(8.333), Inches(0.7))
-    b6.fill.solid()
-    b6.fill.fore_color.rgb = COLOR_CARD
-    b6.line.color.rgb = COLOR_EMERALD
-    p_b6 = b6.text_frame.paragraphs[0]
-    p_b6.text = "💡 Des solutions complémentaires au service de la transformation numérique."
-    p_b6.font.size = Pt(12)
-    p_b6.font.bold = True
-    p_b6.font.color.rgb = COLOR_PRIMARY
-    p_b6.alignment = PP_ALIGN.CENTER
+    tx6 = s6.shapes.add_textbox(Inches(1.1), Inches(1.8), Inches(11.3), Inches(4.1))
+    tf6 = tx6.text_frame
+    tf6.word_wrap = True
+    p_t6 = tf6.paragraphs[0]
+    p_t6.text = "Une clientèle diversifiée :"
+    p_t6.font.size = Pt(12)
+    p_t6.font.bold = True
+    p_t6.font.color.rgb = COLOR_PRIMARY
+    clients6 = [
+        "CORIS BANK CÔTE D'IVOIRE",
+        "MEDLOG CÔTE D'IVOIRE",
+        "CICT",
+        "PNOEV",
+        "CNPTIR",
+        "MINISTÈRE DES AFFAIRES ÉTRANGÈRES DE CÔTE D'IVOIRE",
+        "ÉCOLE ACADÉMIE HORIZON INTERNATIONAL",
+        "GROUPE SCOLAIRE MEHI",
+        "SMART SECURITY",
+        "ETC…",
+    ]
+    for i, c in enumerate(clients6, start=1):
+        p_i = tf6.add_paragraph()
+        p_i.text = "•  " + c
+        p_i.font.size = Pt(11)
+        p_i.font.color.rgb = COLOR_TEXT
+        p_i.space_before = Pt(8 if i > 1 else 0)
+    p_note6 = tf6.add_paragraph()
+    p_note6.text = "Nous accordons une importance particulière à la qualité des relations commerciales et au développement de partenariats durables."
+    p_note6.font.size = Pt(10)
+    p_note6.font.color.rgb = COLOR_GREEN
+    p_note6.space_before = Pt(10)
 
-    # ==================== SLIDE 7: Mise en Œuvre du Datacenter ====================
+    s6.shapes.add_picture(os.path.abspath("assets/partner_coris_bank.png"), Inches(0.8), Inches(6.3), height=Inches(0.9))
+
+    # ==================== SLIDE 7: Notre Approche de Travail ====================
     s7 = prs.slides.add_slide(blank_layout)
-    add_header(s7, 7, "Mise en Œuvre du Datacenter", "Socle d'Infrastructure")
+    add_header(s7, 9, "Notre Approche de Travail", "Approche")
 
-    b7 = s7.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.5), Inches(1.5), Inches(10.333), Inches(1.3))
-    b7.fill.solid()
-    b7.fill.fore_color.rgb = COLOR_CARD
-    b7.line.color.rgb = COLOR_CYAN
-    b7_tx = s7.shapes.add_textbox(Inches(1.6), Inches(1.6), Inches(10.133), Inches(1.1))
-    p_b7 = b7_tx.text_frame.paragraphs[0]
-    p_b7.text = "🖥️  INFRASTRUCTURE NATIONALE DE SANTÉ"
-    p_b7.font.size = Pt(16)
-    p_b7.font.bold = True
-    p_b7.font.color.rgb = COLOR_CYAN
-    p_b7.alignment = PP_ALIGN.CENTER
-    p_b7_sub = b7_tx.text_frame.add_paragraph()
-    p_b7_sub.text = "« Mettre en place une infrastructure centralisée, sécurisée et performante pour accompagner la transformation numérique du système de santé. »"
-    p_b7_sub.font.size = Pt(12)
-    p_b7_sub.font.color.rgb = COLOR_PRIMARY
-    p_b7_sub.alignment = PP_ALIGN.CENTER
+    approach7 = [
+        "Analyse et compréhension des besoins du client.",
+        "Étude technique et proposition de solutions.",
+        "Élaboration d'une offre commerciale adaptée.",
+        "Fourniture et déploiement des équipements ou services.",
+        "Vérification et contrôle de la qualité des prestations.",
+        "Assistance et accompagnement après livraison.",
+    ]
+    card7 = s7.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.6), Inches(11.7), Inches(4.6))
+    card7.fill.solid()
+    card7.fill.fore_color.rgb = COLOR_CARD
+    card7.line.color.rgb = COLOR_BORDER
+    card7.line.width = Pt(1.5)
+    tx7 = s7.shapes.add_textbox(Inches(1.1), Inches(1.8), Inches(11.3), Inches(4.4))
+    tf7 = tx7.text_frame
+    tf7.word_wrap = True
+    p_t7 = tf7.paragraphs[0]
+    p_t7.text = "Pour chaque projet, HINOV GROUP privilégie une démarche structurée :"
+    p_t7.font.size = Pt(12)
+    p_t7.font.bold = True
+    p_t7.font.color.rgb = COLOR_PRIMARY
+    for i, a in enumerate(approach7, start=1):
+        p_i = tf7.add_paragraph()
+        p_i.text = "•  " + a
+        p_i.font.size = Pt(11)
+        p_i.font.color.rgb = COLOR_TEXT
+        p_i.space_before = Pt(8 if i > 1 else 0)
 
-    add_card(s7, Inches(0.8), Inches(3.2), w3, Inches(3.2), "CENTRALISÉ", "Consolidation des données et mutualisation des ressources serveur.", "💾", COLOR_CYAN)
-    add_card(s7, Inches(4.8), Inches(3.2), w3, Inches(3.2), "SÉCURISÉ", "Protection maximale, chiffrement et haute résilience contre les sinistres.", "🔒", COLOR_EMERALD)
-    add_card(s7, Inches(8.9), Inches(3.2), w3, Inches(3.2), "PERFORMANT", "Temps de réponse optimaux et disponibilité continue 24/7.", "⚡", COLOR_CYAN)
+    s7.shapes.add_picture(os.path.abspath("assets/img_mission.jpeg"), Inches(0.8), Inches(6.3), height=Inches(0.9))
 
-    # ==================== SLIDE 8: Chronologie de mise en œuvre ====================
+    # ==================== SLIDE 8: Perspectives de Développement ====================
     s8 = prs.slides.add_slide(blank_layout)
-    add_header(s8, 8, "Chronologie de Mise en Œuvre (2021 - 2024)", "Feuille de Route")
+    add_header(s8, 10, "Perspectives de Développement", "Perspectives")
 
-    add_card(s8, Inches(0.8), Inches(1.8), w4, Inches(4.2), "2021 — Cadrage", "Signature des contrats, cadrage institutionnel et passation des marchés.\n\nPhase : Préparation", "📄", COLOR_CYAN)
-    add_card(s8, Inches(3.8), Inches(1.8), w4, Inches(4.2), "2022 — Réalisation", "Démarrage des travaux d'aménagement, génie civil et pose des équipements.\n\nPhase : Travaux & Équipements", "🏗️", RGBColor(217, 119, 6))
-    add_card(s8, Inches(6.8), Inches(1.8), w4, Inches(4.2), "2023 — Recette", "Tests de recette technique en usine, tests de charge et validation sécuritaire.\n\nPhase : Tests de Recette", "🧪", RGBColor(126, 34, 206))
-    add_card(s8, Inches(9.8), Inches(1.8), w4, Inches(4.2), "2024 — Service", "Réception provisoire des installations et mise en service opérationnelle.\n\nPhase : Exploitation Active", "✅", COLOR_EMERALD)
+    perspectives8 = [
+        "Développement de l'activité de distribution de matériels informatiques.",
+        "Renforcement des capacités techniques.",
+        "Développement de partenariats avec des fabricants et distributeurs internationaux.",
+        "Élargissement du portefeuille de clients institutionnels et professionnels.",
+        "Développement de solutions informatiques innovantes.",
+        "Renforcement de l'offre de maintenance et d'infogérance.",
+    ]
+    card8 = s8.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.6), Inches(11.7), Inches(4.6))
+    card8.fill.solid()
+    card8.fill.fore_color.rgb = COLOR_CARD
+    card8.line.color.rgb = COLOR_BORDER
+    card8.line.width = Pt(1.5)
+    tx8 = s8.shapes.add_textbox(Inches(1.1), Inches(1.8), Inches(11.3), Inches(4.4))
+    tf8 = tx8.text_frame
+    tf8.word_wrap = True
+    p_t8 = tf8.paragraphs[0]
+    p_t8.text = "HINOV GROUP ambitionne de renforcer progressivement sa position sur le marché ivoirien à travers :"
+    p_t8.font.size = Pt(12)
+    p_t8.font.bold = True
+    p_t8.font.color.rgb = COLOR_PRIMARY
+    for i, a in enumerate(perspectives8, start=1):
+        p_i = tf8.add_paragraph()
+        p_i.text = "•  " + a
+        p_i.font.size = Pt(11)
+        p_i.font.color.rgb = COLOR_TEXT
+        p_i.space_before = Pt(8 if i > 1 else 0)
 
-    # ==================== SLIDE 9: Le Datacenter en Images ====================
+    s8.shapes.add_picture(os.path.abspath("assets/img_vision.jpeg"), Inches(0.8), Inches(1.9), height=Inches(0.9))
+
+    # ==================== SLIDE 9: Pourquoi Choisir HINOV GROUP ? ====================
     s9 = prs.slides.add_slide(blank_layout)
-    add_header(s9, 9, "Le Datacenter en Images", "Galerie Visuelle")
+    add_header(s9, 11, "Pourquoi Choisir", "Valeur Ajoutée")
 
-    add_card(s9, Inches(0.8), Inches(1.8), w3, Inches(4.2), "Salle Serveurs & Baies IT", "Photo 1 : Racks haute densité, connectivité fibre et câblage structuré certifié.", "📸", COLOR_CYAN)
-    add_card(s9, Inches(4.8), Inches(1.8), w3, Inches(4.2), "Énergie & Onduleurs", "Photo 2 : Alimentation électrique secourue, redondance N+1 et groupes électrogènes.", "⚡", RGBColor(217, 119, 6))
-    add_card(s9, Inches(8.9), Inches(1.8), w3, Inches(4.2), "Supervision & Contrôle", "Photo 3 : Poste de monitoring 24/7 et contrôle d'accès biométrique strict.", "🛡️", COLOR_EMERALD)
+    b9 = s9.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.2), Inches(1.4), Inches(10.9), Inches(1.3))
+    b9.fill.solid()
+    b9.fill.fore_color.rgb = COLOR_CARD
+    b9.line.color.rgb = COLOR_GREEN
+    b9.line.width = Pt(2)
+    b9_tx = s9.shapes.add_textbox(Inches(1.3), Inches(1.45), Inches(10.7), Inches(0.9))
+    b9_tf = b9_tx.text_frame
+    b9_tf.word_wrap = True
+    p_b9 = b9_tf.paragraphs[0]
+    p_b9.text = "Choisir HINOV GROUP, c'est faire confiance à un partenaire qui place les besoins de ses clients au centre de ses priorités."
+    p_b9.font.size = Pt(13)
+    p_b9.font.bold = True
+    p_b9.font.color.rgb = COLOR_PRIMARY
+    p_b9.alignment = PP_ALIGN.CENTER
 
-    # ==================== SLIDE 10: Infrastructure technique ====================
+    card9 = s9.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(2.9), Inches(11.7), Inches(4.0))
+    card9.fill.solid()
+    card9.fill.fore_color.rgb = COLOR_CARD
+    card9.line.color.rgb = COLOR_BORDER
+    card9.line.width = Pt(1.5)
+    tx9 = s9.shapes.add_textbox(Inches(1.1), Inches(3.1), Inches(11.3), Inches(3.8))
+    tf9 = tx9.text_frame
+    tf9.word_wrap = True
+    p_t9 = tf9.paragraphs[0]
+    p_t9.text = "Notre objectif est de contribuer à la performance opérationnelle de nos clients grâce à des solutions adaptées, accessibles et évolutives."
+    p_t9.font.size = Pt(12)
+    p_t9.font.bold = True
+    p_t9.font.color.rgb = COLOR_PRIMARY
+    p_a9 = tf9.add_paragraph()
+    p_a9.text = "Nous proposons une approche globale permettant de répondre à plusieurs besoins : fourniture d'équipements, installation, maintenance, assistance informatique, infrastructures réseau et communication."
+    p_a9.font.size = Pt(11)
+    p_a9.font.color.rgb = COLOR_TEXT
+    p_a9.space_before = Pt(8)
+
+    s9.shapes.add_picture(os.path.abspath("assets/img_expertise.jpeg"), Inches(0.8), Inches(1.9), height=Inches(0.9))
+
+    # ==================== SLIDE 10: Nos Coordonnées ====================
     s10 = prs.slides.add_slide(blank_layout)
-    add_header(s10, 10, "Infrastructure Technique du Datacenter", "Spécifications Équipements")
+    add_header(s10, 12, "Nos Coordonnées", "Contact")
 
-    add_card(s10, Inches(0.8), Inches(1.8), w3, Inches(4.0), "Puissance de Calcul", "Serveurs de dernière génération pour exécuter les charges critiques du SNIS.", "💻", COLOR_CYAN)
-    add_card(s10, Inches(4.8), Inches(1.8), w3, Inches(4.0), "Refroidissement de Précision", "Climatisation redondante avec confinement des allées chaudes/froides.", "❄️", COLOR_CYAN)
-    add_card(s10, Inches(8.9), Inches(1.8), w3, Inches(4.0), "Sécurité Incendie & Physique", "Extinction automatique par gaz inerte et détection ultra-précoce des fumées.", "🔒", COLOR_EMERALD)
+    card10 = s10.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.9), Inches(11.7), Inches(4.2))
+    card10.fill.solid()
+    card10.fill.fore_color.rgb = COLOR_CARD
+    card10.line.color.rgb = COLOR_BORDER
+    card10.line.width = Pt(1.5)
+    tx10 = s10.shapes.add_textbox(Inches(1.1), Inches(2.1), Inches(11.3), Inches(3.9))
+    tf10 = tx10.text_frame
+    tf10.word_wrap = True
+    p_t10 = tf10.paragraphs[0]
+    p_t10.text = "HINOV GROUP"
+    p_t10.font.size = Pt(16)
+    p_t10.font.bold = True
+    p_t10.font.color.rgb = COLOR_PRIMARY
+    p_t10.alignment = PP_ALIGN.CENTER
+    lines10 = [
+        "Siège / implantation : Abidjan, Yopougon, Cité CIE, rue S 259.",
+        "Téléphone : (+225) 07 07 02 94 71 / (+225) 07 09 77 03 82",
+        "E-mail : hinovgroup@hinovgroup.com",
+        "Site internet : www.hinovgroup.com",
+        "Localisation : Abidjan – Côte d'Ivoire.",
+    ]
+    for i, l in enumerate(lines10, start=1):
+        p_i = tf10.add_paragraph()
+        p_i.text = l
+        p_i.font.size = Pt(11)
+        p_i.font.color.rgb = COLOR_TEXT
+        p_i.alignment = PP_ALIGN.CENTER
+        p_i.space_before = Pt(6 if i > 1 else 0)
+    p_tag10 = tf10.add_paragraph()
+    p_tag10.text = "L'innovation au service de votre performance."
+    p_tag10.font.size = Pt(12)
+    p_tag10.font.bold = True
+    p_tag10.font.color.rgb = COLOR_GREEN
+    p_tag10.alignment = PP_ALIGN.CENTER
+    p_tag10.space_before = Pt(8)
+    p_tag10sub = tf10.add_paragraph()
+    p_tag10sub.text = "NOS PARTENAIRES TECHNIQUES"
+    p_tag10sub.font.size = Pt(9)
+    p_tag10sub.font.bold = True
+    p_tag10sub.font.color.rgb = COLOR_MUTED
+    p_tag10sub.alignment = PP_ALIGN.CENTER
 
-    # ==================== SLIDE 11: Une infrastructure au service de la santé ====================
-    s11 = prs.slides.add_slide(blank_layout)
-    add_header(s11, 11, "Au Service de la Santé Digitale", "Valeur Ajoutée")
-
-    add_card(s11, Inches(0.8), Inches(1.6), Inches(5.5), Inches(4.8), "SOCLE DE CONFIANCE", "Le Datacenter constitue une infrastructure essentielle pour accompagner le développement des systèmes d'information sanitaires et garantir un service continu aux établissements.", "🛡️", COLOR_CYAN)
-    add_card(s11, Inches(6.8), Inches(1.6), Inches(5.7), Inches(1.4), "Centralisation", "Unification complète des bases de données sanitaires nationales.", "💾", COLOR_CYAN)
-    add_card(s11, Inches(6.8), Inches(3.3), Inches(5.7), Inches(1.4), "Sécurisation", "Chiffrement et conformité stricte aux exigences de cybersécurité.", "🔒", COLOR_EMERALD)
-    add_card(s11, Inches(6.8), Inches(5.0), Inches(5.7), Inches(1.4), "Performance", "Temps d'accès instantanés pour les professionnels de santé.", "⚡", COLOR_CYAN)
-
-    # ==================== SLIDE 12: Défis et Perspectives ====================
-    s12 = prs.slides.add_slide(blank_layout)
-    add_header(s12, 12, "Défis et Perspectives", "Enjeux Stratégiques")
-
-    w5 = Inches(2.2)
-    add_card(s12, Inches(0.6), Inches(2.0), w5, Inches(4.2), "Ressources Humaines", "Recrutement et fidélisation d'experts IT qualifiés.", "👥", COLOR_CYAN)
-    add_card(s12, Inches(3.0), Inches(2.0), w5, Inches(4.2), "Formation Continue", "Montée en compétences des agents et du personnel de santé.", "🎓", RGBColor(217, 119, 6))
-    add_card(s12, Inches(5.4), Inches(2.0), w5, Inches(4.2), "Maintenance", "Maintenance préventive, SLA et gestion des pièces de rechange.", "🔧", RGBColor(234, 88, 12))
-    add_card(s12, Inches(7.8), Inches(2.0), w5, Inches(4.2), "Interconnexion", "Raccordement réseau de tous les centres de santé périphériques.", "🔗", RGBColor(126, 34, 206))
-    add_card(s12, Inches(10.2), Inches(2.0), w5, Inches(4.2), "Sécurité Données", "Conformité PSSI, audits réguliers et cyber-résilience continue.", "🔒", COLOR_EMERALD)
-
-    # ==================== SLIDE 13: Connectivité et Interconnexion ====================
-    s13 = prs.slides.add_slide(blank_layout)
-    add_header(s13, 13, "Connectivité & Interconnexion", "Maillage Réseau")
-
-    w6 = Inches(3.6)
-    h6 = Inches(2.2)
-    add_card(s13, Inches(0.8), Inches(1.6), w6, h6, "Fibre Optique", "Dorsale nationale haut débit pour les CHU, CHR et hôpitaux généraux.", "🌐", COLOR_CYAN)
-    add_card(s13, Inches(4.8), Inches(1.6), w6, h6, "VSAT Gouvernemental", "Liaisons satellitaires pour les localités enclavées.", "🛰️", RGBColor(126, 34, 206))
-    add_card(s13, Inches(8.9), Inches(1.6), w6, h6, "Internet Haut Débit", "Garantie de bande passante et latence minimale.", "📡", COLOR_CYAN)
-    add_card(s13, Inches(0.8), Inches(4.1), w6, h6, "Couverture 4G", "Tablettes terrain et accès mobile pour la collecte décentralisée.", "📱", COLOR_EMERALD)
-    add_card(s13, Inches(4.8), Inches(4.1), w6, h6, "Coût de la Data", "Tarification préférentielle et partenariats opérateurs.", "💰", RGBColor(217, 119, 6))
-    add_card(s13, Inches(8.9), Inches(4.1), w6, h6, "Alimentation Électrique", "Stabilité du réseau électrique et solutions solaires d'appoint.", "⚡", RGBColor(234, 88, 12))
-
-    # ==================== SLIDE 14: Identité, Adoption et Sécurité ====================
-    s14 = prs.slides.add_slide(blank_layout)
-    add_header(s14, 14, "Identité, Adoption et Sécurité", "Gouvernance & Confiance")
-
-    add_card(s14, Inches(0.8), Inches(2.0), w4, Inches(4.2), "Identifiant Unique", "Garantir l'unicité du patient et éviter les doublons dans le système sanitaire.\n\n→ IDENTIFIER", "👤", RGBColor(126, 34, 206))
-    add_card(s14, Inches(3.8), Inches(2.0), w4, Inches(4.2), "Appropriation Outils", "Conduite du changement active et accompagnement quotidien des personnels.\n\n→ ADOPTER", "👥", COLOR_CYAN)
-    add_card(s14, Inches(6.8), Inches(2.0), w4, Inches(4.2), "Sécurité des Données", "Protection absolue du secret médical, contrôle d'accès strict et chiffrement.\n\n→ SÉCURISER", "🔒", COLOR_EMERALD)
-    add_card(s14, Inches(9.8), Inches(2.0), w4, Inches(4.2), "Cadre Réglementaire", "Conformité légale sur la protection des données personnelles (ARTCI).\n\n→ ENCADRER", "⚖️", COLOR_CYAN)
-
-    # ==================== SLIDE 15: Conclusion ====================
-    s15 = prs.slides.add_slide(blank_layout)
-    add_header(s15, 15, "Conclusion & Perspectives", "Clôture")
-
-    b15 = s15.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.5), Inches(1.5), Inches(10.333), Inches(1.6))
-    b15.fill.solid()
-    b15.fill.fore_color.rgb = COLOR_CARD
-    b15.line.color.rgb = COLOR_CYAN
-    b15_tx = s15.shapes.add_textbox(Inches(1.6), Inches(1.7), Inches(10.133), Inches(1.2))
-    p15 = b15_tx.text_frame.paragraphs[0]
-    p15.text = "« La digitalisation transforme progressivement le système de santé ivoirien. »"
-    p15.font.size = Pt(22)
-    p15.font.bold = True
-    p15.font.color.rgb = COLOR_PRIMARY
-    p15.alignment = PP_ALIGN.CENTER
-
-    add_card(s15, Inches(0.8), Inches(3.4), w4, Inches(2.2), "Accès à l'Information", "Données sanitaires fiables en temps réel pour tous les acteurs.", "📖", COLOR_CYAN)
-    add_card(s15, Inches(3.8), Inches(3.4), w4, Inches(2.2), "Qualité des Soins", "Prise en charge patient fluidifiée et suivi médical continu.", "🩺", COLOR_EMERALD)
-    add_card(s15, Inches(6.8), Inches(3.4), w4, Inches(2.2), "Gestion du Système", "Efficience accrue des ressources matérielles et humaines.", "📊", RGBColor(217, 119, 6))
-    add_card(s15, Inches(9.8), Inches(3.4), w4, Inches(2.2), "Prise de Décision", "Politiques publiques de santé fondées sur des preuves tangibles.", "🎯", RGBColor(126, 34, 206))
-
-    cta = s15.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.5), Inches(5.9), Inches(10.333), Inches(0.7))
-    cta.fill.solid()
-    cta.fill.fore_color.rgb = COLOR_CARD
-    cta.line.color.rgb = COLOR_EMERALD
-    p_cta = cta.text_frame.paragraphs[0]
-    p_cta.text = "✨ La réussite du projet repose sur l'engagement et la contribution de tous les acteurs."
-    p_cta.font.size = Pt(13)
-    p_cta.font.bold = True
-    p_cta.font.color.rgb = COLOR_EMERALD
-    p_cta.alignment = PP_ALIGN.CENTER
+    s10.shapes.add_picture(os.path.abspath("assets/img_hinov_main.jpeg"), Inches(0.8), Inches(1.9), height=Inches(0.9))
 
     output_path = "Presentation_Datacenter_Sante_CI_Light.pptx"
     prs.save(output_path)
@@ -406,4 +655,3 @@ def create_light_presentation():
 
 if __name__ == "__main__":
     create_light_presentation()
-
