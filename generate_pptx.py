@@ -576,7 +576,7 @@ def create_presentation():
     p_a9.font.color.rgb = COLOR_MUTED
     p_a9.space_before = Pt(8)
 
-    s9.shapes.add_picture(os.path.abspath("assets/img_expertise.jpeg"), Inches(0.8), Inches(1.9), height=Inches(0.9))
+    s9.shapes.add_picture(os.path.abspath("assets/logo.png"), Inches(0.8), Inches(1.9), height=Inches(0.9))
 
     # ==================== SLIDE 10: Nos Coordonnées ====================
     s10 = prs.slides.add_slide(blank_layout)
