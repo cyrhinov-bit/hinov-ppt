@@ -410,9 +410,33 @@
 
             <div class="max-w-7xl mx-auto relative">
               <!-- Carte unique avec carrousel automatique -->
-              <div id="expertise-carousel" class="slide-item step-2 bg-style-blue rounded-3xl p-6 shadow-md min-h-[350px] transition-all duration-500">
-                <div id="pole-content" class="transition-all duration-500">
-                  <!-- Contenu injecté par JS -->
+              <div id="expertise-carousel" class="relative">
+                <div id="pole-1" class="pole-panel bg-style-blue rounded-3xl p-6 shadow-md min-h-[350px]">
+                  <h3 class="text-2xl font-black text-white mb-2">Pôle Service informatique</h3>
+                  <div class="space-y-2">
+                    <div class="flex items-start space-x-2"><span class="text-white font-black mt-0.5">✓</span><p class="text-sm text-white">Vente de matériel informatique : ordinateurs, imprimantes, serveurs, équipements réseaux et accessoires.</p></div>
+                    <div class="flex items-start space-x-2"><span class="text-white font-black mt-0.5">✓</span><p class="text-sm text-white">Infogérance informatique : administration, surveillance et maintenance des infrastructures.</p></div>
+                    <div class="flex items-start space-x-2"><span class="text-white font-black mt-0.5">✓</span><p class="text-sm text-white">Maintenance et dépannage : maintenance préventive et corrective des équipements informatiques.</p></div>
+                    <div class="flex items-start space-x-2"><span class="text-white font-black mt-0.5">✓</span><p class="text-sm text-white">Câblage informatique et téléphonique : câblage réseau (cuivre et fibre optique), prises RJ45, baies et armoires réseau.</p></div>
+                    <div class="flex items-start space-x-2"><span class="text-white font-black mt-0.5">✓</span><p class="text-sm text-white">Développement de logiciels et solutions informatiques : applications web et mobiles, logiciels de gestion et automatisation des processus métiers.</p></div>
+                  </div>
+                </div>
+                <div id="pole-2" class="pole-panel bg-style-orange rounded-3xl p-6 shadow-md min-h-[350px] hidden">
+                  <h3 class="text-2xl font-black text-white mb-2">Pôle Imprimerie</h3>
+                  <div class="space-y-2">
+                    <div class="flex items-start space-x-2"><span class="text-white font-black mt-0.5">✓</span><p class="text-sm text-white">Impression tous formats et supports : impression sur tout support, grand format et petit format.</p></div>
+                    <div class="flex items-start space-x-2"><span class="text-white font-black mt-0.5">✓</span><p class="text-sm text-white">Supports de communication et d'édition : confection de flyers, catalogues et agendas.</p></div>
+                    <div class="flex items-start space-x-2"><span class="text-white font-black mt-0.5">✓</span><p class="text-sm text-white">Identité et papeterie personnalisée : confection de logos, cartes de visite et cartes de mariage.</p></div>
+                    <div class="flex items-start space-x-2"><span class="text-white font-black mt-0.5">✓</span><p class="text-sm text-white">Documents et marquage spécialisé : impression de documents officiels et sérigraphie.</p></div>
+                  </div>
+                </div>
+                <div id="pole-3" class="pole-panel bg-style-violet rounded-3xl p-6 shadow-md min-h-[350px] hidden">
+                  <h3 class="text-2xl font-black text-white mb-2">Pôle Librairie – Papeterie</h3>
+                  <div class="space-y-2">
+                    <div class="flex items-start space-x-2"><span class="text-white font-black mt-0.5">✓</span><p class="text-sm text-white">Équipement scolaire : fournitures scolaires complètes pour tous cycles, accessoires scolaires pratiques et ergonomiques, sacs et cartables résistants.</p></div>
+                    <div class="flex items-start space-x-2"><span class="text-white font-black mt-0.5">✓</span><p class="text-sm text-white">Équipement du quotidien et protection : gourdes isothermes et bouteilles réutilisables, parapluies (compacts et grands modèles) et imperméables de protection.</p></div>
+                    <div class="flex items-start space-x-2"><span class="text-white font-black mt-0.5">✓</span><p class="text-sm text-white">Approvisionnement professionnel : fournitures et consommables de bureau pour entreprises.</p></div>
+                  </div>
                 </div>
               </div>
 
@@ -421,8 +445,10 @@
                 <button onclick="prevPole()" class="w-8 h-8 rounded-full bg-style-dark text-white flex items-center justify-center hover:bg-style-blue transition-colors">
                   ←
                 </button>
-                <div id="pole-indicators" class="flex space-x-2">
-                  <!-- Points injectés par JS -->
+                <div class="flex space-x-2">
+                  <button onclick="goToPole(1)" id="indicator-1" class="w-2.5 h-2.5 rounded-full bg-white transition-all"></button>
+                  <button onclick="goToPole(2)" id="indicator-2" class="w-2.5 h-2.5 rounded-full bg-white/50 hover:bg-white/75 transition-all"></button>
+                  <button onclick="goToPole(3)" id="indicator-3" class="w-2.5 h-2.5 rounded-full bg-white/50 hover:bg-white/75 transition-all"></button>
                 </div>
                 <button onclick="nextPole()" class="w-8 h-8 rounded-full bg-style-dark text-white flex items-center justify-center hover:bg-style-blue transition-colors">
                   →
@@ -981,60 +1007,39 @@
       }
     ];
 
-    let currentPole = 0;
-    let poleInterval;
+    // Carrousel manuel des pôles
+    let currentPole = 1;
+    const totalPoles = 3;
 
-    function renderPole(index) {
-      const carousel = document.getElementById('expertise-carousel');
-      const content = document.getElementById('pole-content');
-      const indicators = document.getElementById('pole-indicators');
-      const pole = poles[index];
-
-      // Mettre à jour la couleur de fond
-      carousel.className = `slide-item step-2 ${pole.color} rounded-3xl p-6 shadow-md min-h-[350px] transition-all duration-500`;
-
-      // Générer le contenu
-      const itemsHtml = pole.items.map(item => `
-        <div class="flex items-start space-x-2">
-          <span class="text-white font-black mt-0.5">✓</span>
-          <p class="text-sm ${pole.textColor}">${item}</p>
-        </div>
-      `).join('');
-
-      content.innerHTML = `
-        <div class="pole-content">
-          <h3 class="text-2xl font-black ${pole.textColor} mb-2">${pole.title}</h3>
-          <p class="text-xs font-bold uppercase tracking-wider ${pole.textColor}/80 mb-1">Prestations couvertes</p>
-          <p class="text-sm ${pole.textColor}/90 mb-5">Notre équipe intervient avec rigueur sur l'ensemble de ces champs d'application :</p>
-          <div class="space-y-2">
-            ${itemsHtml}
-          </div>
-        </div>
-      `;
-
-      // Mettre à jour les indicateurs
-      indicators.innerHTML = poles.map((_, i) => `
-        <button onclick="goToPole(${i})" class="w-2.5 h-2.5 rounded-full transition-all duration-300 ${i === index ? 'bg-white scale-125' : 'bg-white/50 hover:bg-white/75'}"></button>
-      `).join('');
+    function updatePole(newIndex) {
+      document.getElementById('pole-' + currentPole).classList.add('hidden');
+      document.getElementById('indicator-' + currentPole).classList.remove('bg-white', 'scale-125');
+      document.getElementById('indicator-' + currentPole).classList.add('bg-white/50');
+      currentPole = newIndex;
+      document.getElementById('pole-' + currentPole).classList.remove('hidden');
+      document.getElementById('indicator-' + currentPole).classList.remove('bg-white/50');
+      document.getElementById('indicator-' + currentPole).classList.add('bg-white', 'scale-125');
     }
 
     function nextPole() {
-      currentPole = (currentPole + 1) % poles.length;
-      renderPole(currentPole);
+      const next = currentPole < totalPoles ? currentPole + 1 : 1;
+      updatePole(next);
     }
 
     function prevPole() {
-      currentPole = (currentPole - 1 + poles.length) % poles.length;
-      renderPole(currentPole);
+      const prev = currentPole > 1 ? currentPole - 1 : totalPoles;
+      updatePole(prev);
     }
 
     function goToPole(index) {
-      currentPole = index;
-      renderPole(currentPole);
+      if (index !== currentPole) {
+        updatePole(index);
+      }
     }
 
-    // Initialiser le carousel sans autoplay
-    renderPole(0);
+    // Initialiser le premier indicateur
+    document.getElementById('indicator-1').classList.remove('bg-white/50');
+    document.getElementById('indicator-1').classList.add('bg-white', 'scale-125');
 
     currentStep = 1;
     renderCurrentSlide();
