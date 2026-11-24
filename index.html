@@ -398,7 +398,7 @@
       {
         id: 4,
         title: "Domaines d'Expertise",
-        steps: 16,
+        steps: 3,
         render: () => `
           <div class="w-full space-y-6">
             <div class="text-center space-y-1">
@@ -440,19 +440,11 @@
                 </div>
               </div>
 
-              <!-- Indicateurs et contrôles -->
-              <div class="flex items-center justify-center space-x-3 mt-4">
-                <button onclick="prevPole()" class="w-8 h-8 rounded-full bg-style-dark text-white flex items-center justify-center hover:bg-style-blue transition-colors">
-                  ←
-                </button>
-                <div class="flex space-x-2">
-                  <button onclick="goToPole(1)" id="indicator-1" class="w-2.5 h-2.5 rounded-full bg-white transition-all"></button>
-                  <button onclick="goToPole(2)" id="indicator-2" class="w-2.5 h-2.5 rounded-full bg-white/50 hover:bg-white/75 transition-all"></button>
-                  <button onclick="goToPole(3)" id="indicator-3" class="w-2.5 h-2.5 rounded-full bg-white/50 hover:bg-white/75 transition-all"></button>
-                </div>
-                <button onclick="nextPole()" class="w-8 h-8 rounded-full bg-style-dark text-white flex items-center justify-center hover:bg-style-blue transition-colors">
-                  →
-                </button>
+              <!-- Indicateurs visuels -->
+              <div class="flex items-center justify-center space-x-2 mt-4">
+                <span id="indicator-1" class="w-2.5 h-2.5 rounded-full bg-white transition-all"></span>
+                <span id="indicator-2" class="w-2.5 h-2.5 rounded-full bg-white/50 transition-all"></span>
+                <span id="indicator-3" class="w-2.5 h-2.5 rounded-full bg-white/50 transition-all"></span>
               </div>
 
           </div>
@@ -808,12 +800,23 @@
           item.classList.remove('revealed');
         }
       });
-      // Diapo 4 : succession des pôles - quand un pôle se termine, il disparaît pour laisser apparaitre le suivant
-      const activePole = stepNum >= 13 ? 3 : (stepNum >= 8 ? 2 : 1);
-      document.querySelectorAll('.slide-item[data-pole]').forEach(el => {
-        const pole = parseInt(el.getAttribute('data-pole'));
-        if (pole < activePole) el.classList.remove('revealed');
-      });
+
+      // Diapo 4 : gestion du carrousel des pôles selon le step
+      if (currentSlideIdx === 3) {
+        for (let i = 1; i <= 3; i++) {
+          const pole = document.getElementById('pole-' + i);
+          const indicator = document.getElementById('indicator-' + i);
+          if (i <= stepNum) {
+            pole.classList.remove('hidden');
+            indicator.classList.remove('bg-white/50');
+            indicator.classList.add('bg-white');
+          } else {
+            pole.classList.add('hidden');
+            indicator.classList.remove('bg-white');
+            indicator.classList.add('bg-white/50');
+          }
+        }
+      }
     }
 
     function nextStep() {
@@ -969,42 +972,6 @@
       requestAnimationFrame(animateParticles);
     }
     animateParticles();
-
-    // Carrousel manuel des pôles
-    let currentPole = 1;
-    const totalPoles = 3;
-
-    function updatePole(newIndex) {
-      document.getElementById('pole-' + currentPole).classList.add('hidden');
-      document.getElementById('indicator-' + currentPole).classList.remove('bg-white', 'scale-125');
-      document.getElementById('indicator-' + currentPole).classList.add('bg-white/50');
-      currentPole = newIndex;
-      document.getElementById('pole-' + currentPole).classList.remove('hidden');
-      document.getElementById('indicator-' + currentPole).classList.remove('bg-white/50');
-      document.getElementById('indicator-' + currentPole).classList.add('bg-white', 'scale-125');
-    }
-
-    function nextPole() {
-      const next = currentPole < totalPoles ? currentPole + 1 : 1;
-      updatePole(next);
-    }
-
-    function prevPole() {
-      const prev = currentPole > 1 ? currentPole - 1 : totalPoles;
-      updatePole(prev);
-    }
-
-    function goToPole(index) {
-      if (index !== currentPole) {
-        updatePole(index);
-      }
-    }
-
-    // Initialisation après chargement du DOM
-    document.addEventListener('DOMContentLoaded', function() {
-      document.getElementById('indicator-1').classList.remove('bg-white/50');
-      document.getElementById('indicator-1').classList.add('bg-white', 'scale-125');
-    });
 
     currentStep = 1;
     renderCurrentSlide();
