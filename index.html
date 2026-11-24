@@ -1000,9 +1000,11 @@
       }
     }
 
-    // Initialiser le premier indicateur
-    document.getElementById('indicator-1').classList.remove('bg-white/50');
-    document.getElementById('indicator-1').classList.add('bg-white', 'scale-125');
+    // Initialisation après chargement du DOM
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('indicator-1').classList.remove('bg-white/50');
+      document.getElementById('indicator-1').classList.add('bg-white', 'scale-125');
+    });
 
     currentStep = 1;
     renderCurrentSlide();
