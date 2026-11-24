@@ -484,89 +484,66 @@ def create_styled_presentation():
 
     s3.shapes.add_picture(os.path.abspath("assets/img_mission.jpeg"), Inches(0.8), Inches(0.55), height=Inches(0.9))
 
-    # ==================== SLIDES 4-6: Domaines d'Expertise (3 pôles, même carte) ====================
-    poles = [
-        ("Pôle 1 — Équipements & Systèmes", [
-            ("Vente & Fourniture", "Équipements informatiques et bureautiques.", "💻"),
-            ("Infogérance", "Disponibilité, sécurité et performance des systèmes.", "🛡️"),
-            ("Maintenance", "Diagnostic, réparation et maintenance corrective.", "🔧"),
-        ]),
-        ("Pôle 2 — Réseaux & Développement", [
-            ("Câblage IT & Télécom", "Installation d'infrastructures réseau et téléphonique.", "🌐"),
-            ("Développement", "Solutions informatiques sur mesure.", "💻"),
-            ("Vidéosurveillance", "Fourniture et installation de solutions.", "🛡️"),
-        ]),
-        ("Pôle 3 — Communication & Imprimerie", [
-            ("Communication & Imprimerie", "Conception graphique, impression et supports.", "🖨️"),
-        ]),
-    ]
-    card_left = Inches(1.7)
-    card_top = Inches(2.4)
-    card_width = Inches(9.6)
-    card_height = Inches(3.2)
-    for i, (pole_title, items) in enumerate(poles):
-        sp = prs.slides.add_slide(blank_layout)
-        add_header(sp, 4 + i, "Domaines d'Expertise", "Expertise")
-        sp.shapes.add_picture(os.path.abspath("assets/servives.png"), Inches(0.8), Inches(1.2), height=Inches(0.8))
-        # Conteneur unique
-        container = sp.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.5), Inches(2.2), Inches(10.0), Inches(3.6))
-        container.fill.solid()
-        container.fill.fore_color.rgb = COLOR_DARK
-        container.line.color.rgb = COLOR_BORDER
-        container.line.width = Pt(2)
-        container.shadow.inherit = False
-        # Carte unique (même emplacement sur chaque slide)
-        card = sp.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, card_left, card_top, card_width, card_height)
-        card.fill.solid()
-        card.fill.fore_color.rgb = COLOR_DARK
-        card.line.color.rgb = COLOR_GREEN
-        card.line.width = Pt(1.5)
-        card.shadow.inherit = False
-        tf = card.text_frame
-        tf.word_wrap = True
-        tf.margin_left = Inches(0.3)
-        tf.margin_right = Inches(0.3)
-        tf.margin_top = Inches(0.2)
-        tf.margin_bottom = Inches(0.2)
-        p_pole = tf.paragraphs[0]
-        p_pole.text = pole_title
-        p_pole.font.size = Pt(18)
-        p_pole.font.bold = True
-        p_pole.font.color.rgb = COLOR_GREEN
-        p_pole.alignment = PP_ALIGN.CENTER
-        p_pole.space_before = Pt(8)
-        for title, sub, icon in items:
-            p1 = tf.add_paragraph()
-            p1.text = f"{icon}  {title.upper()}"
-            p1.font.size = Pt(14)
-            p1.font.bold = True
-            p1.font.color.rgb = COLOR_GREEN
-            p1.alignment = PP_ALIGN.CENTER
-            p1.space_before = Pt(6)
-            p2 = tf.add_paragraph()
-            p2.text = sub
-            p2.font.size = Pt(12)
-            p2.font.color.rgb = RGBColor(240, 245, 250)
-            p2.alignment = PP_ALIGN.CENTER
-            p2.space_before = Pt(4)
-        # Indicateur de progression
-        tx_prog = sp.shapes.add_textbox(Inches(10.8), Inches(6.4), Inches(2.2), Inches(0.4))
-        tf_prog = tx_prog.text_frame
-        p_prog = tf_prog.paragraphs[0]
-        p_prog.text = f"{i + 1}/{len(poles)}"
-        p_prog.font.size = Pt(10)
-        p_prog.font.color.rgb = COLOR_MUTED
-        p_prog.alignment = PP_ALIGN.RIGHT
-        # Transition automatique après 5 secondes
-        transition = etree.SubElement(sp.element, qn('p:transition'))
-        transition.set('spd', 'med')
-        transition.set('adv', '1')
-        transition.set('advTm', '5000')
-        etree.SubElement(transition, qn('p:fade'))
+    # ==================== SLIDE 4: Domaines d'Expertise (carte unique) ====================
+    sp = prs.slides.add_slide(blank_layout)
+    add_header(sp, 4, "Domaines d'Expertise", "Expertise")
+    sp.shapes.add_picture(os.path.abspath("assets/servives.png"), Inches(0.8), Inches(1.2), height=Inches(0.8))
+    # Conteneur unique
+    container = sp.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.5), Inches(2.2), Inches(10.0), Inches(3.6))
+    container.fill.solid()
+    container.fill.fore_color.rgb = COLOR_DARK
+    container.line.color.rgb = COLOR_BORDER
+    container.line.width = Pt(2)
+    container.shadow.inherit = False
+    # Carte unique
+    card = sp.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.7), Inches(2.4), Inches(9.6), Inches(3.2))
+    card.fill.solid()
+    card.fill.fore_color.rgb = COLOR_DARK
+    card.line.color.rgb = COLOR_GREEN
+    card.line.width = Pt(1.5)
+    card.shadow.inherit = False
+    tf = card.text_frame
+    tf.word_wrap = True
+    tf.margin_left = Inches(0.3)
+    tf.margin_right = Inches(0.3)
+    tf.margin_top = Inches(0.2)
+    tf.margin_bottom = Inches(0.2)
 
-    # ==================== SLIDE 7: Nos Engagements ====================
+    p_pole = tf.paragraphs[0]
+    p_pole.text = "Pôle Service informatique"
+    p_pole.font.size = Pt(18)
+    p_pole.font.bold = True
+    p_pole.font.color.rgb = COLOR_GREEN
+    p_pole.alignment = PP_ALIGN.CENTER
+    p_pole.space_before = Pt(8)
+
+    items = [
+        ("Vente & Fourniture", "Équipements informatiques et bureautiques.", "💻"),
+        ("Infogérance", "Disponibilité, sécurité et performance des systèmes.", "🛡️"),
+        ("Maintenance", "Diagnostic, réparation et maintenance corrective.", "🔧"),
+        ("Câblage IT & Télécom", "Installation d'infrastructures réseau et téléphonique.", "🌐"),
+        ("Développement", "Solutions informatiques sur mesure.", "💻"),
+        ("Vidéosurveillance", "Fourniture et installation de solutions.", "🛡️"),
+        ("Communication & Imprimerie", "Conception graphique, impression et supports.", "🖨️"),
+    ]
+    for title, sub, icon in items:
+        p1 = tf.add_paragraph()
+        p1.text = f"{icon}  {title.upper()}"
+        p1.font.size = Pt(14)
+        p1.font.bold = True
+        p1.font.color.rgb = COLOR_GREEN
+        p1.alignment = PP_ALIGN.CENTER
+        p1.space_before = Pt(6)
+        p2 = tf.add_paragraph()
+        p2.text = sub
+        p2.font.size = Pt(12)
+        p2.font.color.rgb = RGBColor(240, 245, 250)
+        p2.alignment = PP_ALIGN.CENTER
+        p2.space_before = Pt(4)
+
+    # ==================== SLIDE 5: Nos Engagements ====================
     s5 = prs.slides.add_slide(blank_layout)
-    add_header(s5, 7, "Nos Engagements", "Engagement")
+    add_header(s5, 5, "Nos Engagements", "Engagement")
 
     engagements = [
         ("Qualité", "Proposer des équipements et prestations répondant aux exigences."),
@@ -629,7 +606,7 @@ def create_styled_presentation():
 
     # ==================== SLIDE 7: Notre Approche de Travail ====================
     s7 = prs.slides.add_slide(blank_layout)
-    add_header(s7, 9, "Notre Approche de Travail", "Approche")
+    add_header(s7, 7, "Notre Approche de Travail", "Approche")
 
     approach7 = [
         "Analyse et compréhension des besoins du client.",
@@ -663,7 +640,7 @@ def create_styled_presentation():
 
     # ==================== SLIDE 8: Perspectives de Développement ====================
     s8 = prs.slides.add_slide(blank_layout)
-    add_header(s8, 10, "Perspectives de Développement", "Perspectives")
+    add_header(s8, 8, "Perspectives de Développement", "Perspectives")
 
     perspectives8 = [
         "Développement de l'activité de distribution de matériels informatiques.",
@@ -697,7 +674,7 @@ def create_styled_presentation():
 
     # ==================== SLIDE 9: Pourquoi Choisir HINOV GROUP ? ====================
     s9 = prs.slides.add_slide(blank_layout)
-    add_header(s9, 11, "Pourquoi Choisir", "Valeur Ajoutée")
+    add_header(s9, 9, "Pourquoi Choisir", "Valeur Ajoutée")
 
     b9 = s9.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.2), Inches(1.4), Inches(10.9), Inches(1.3))
     b9.fill.solid()
@@ -737,7 +714,7 @@ def create_styled_presentation():
 
     # ==================== SLIDE 10: Nos Coordonnées ====================
     s10 = prs.slides.add_slide(blank_layout)
-    add_header(s10, 12, "Nos Coordonnées", "Contact")
+    add_header(s10, 10, "Nos Coordonnées", "Contact")
 
     card10 = s10.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.9), Inches(11.7), Inches(4.2))
     card10.fill.solid()

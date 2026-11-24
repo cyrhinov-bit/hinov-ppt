@@ -108,6 +108,20 @@
       border-radius: 9999px;
     }
 
+    /* Carousel Expertise */
+    .expertise-carousel {
+      transition: background 0.5s ease;
+    }
+
+    .pole-content {
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     /* Animation Steps */
     .slide-item {
       opacity: 0;
@@ -394,82 +408,27 @@
 
             <img src="assets/servives.png" alt="HINOV Group" class="w-full h-40 object-cover rounded-2xl" />
 
-            <div class="space-y-6 max-w-7xl mx-auto">
-              <!-- PÔLE 1 : SERVICE INFORMATIQUE -->
-              <div class="slide-item step-2 bg-style-blue rounded-3xl p-6 shadow-md max-w-7xl mx-auto min-h-[350px]" data-pole="1">
-                <h3 class="text-2xl font-black text-white mb-2">Pôle Service informatique</h3>
-                <p class="text-xs font-bold uppercase tracking-wider text-white/80 mb-1">Prestations couvertes</p>
-                <p class="text-sm text-white/90 mb-5">Notre équipe intervient avec rigueur sur l'ensemble de ces champs d'application :</p>
-                <div class="space-y-2">
-                  <div class="slide-item step-3 flex items-start space-x-2">
-                    <span class="text-white font-black mt-0.5">✓</span>
-                    <p class="text-sm text-white">Vente de matériel informatique : ordinateurs, imprimantes, serveurs, équipements réseaux et accessoires.</p>
-                  </div>
-                  <div class="slide-item step-4 flex items-start space-x-2">
-                    <span class="text-white font-black mt-0.5">✓</span>
-                    <p class="text-sm text-white">Infogérance informatique : administration, surveillance et maintenance des infrastructures.</p>
-                  </div>
-                  <div class="slide-item step-5 flex items-start space-x-2">
-                    <span class="text-white font-black mt-0.5">✓</span>
-                    <p class="text-sm text-white">Maintenance et dépannage : maintenance préventive et corrective des équipements informatiques.</p>
-                  </div>
-                  <div class="slide-item step-6 flex items-start space-x-2">
-                    <span class="text-white font-black mt-0.5">✓</span>
-                    <p class="text-sm text-white">Câblage informatique et téléphonique : câblage réseau (cuivre et fibre optique), prises RJ45, baies et armoires réseau.</p>
-                  </div>
-                  <div class="slide-item step-7 flex items-start space-x-2">
-                    <span class="text-white font-black mt-0.5">✓</span>
-                    <p class="text-sm text-white">Développement de logiciels et solutions informatiques : applications web et mobiles, logiciels de gestion et automatisation des processus métiers.</p>
-                  </div>
+            <div class="max-w-7xl mx-auto relative">
+              <!-- Carte unique avec carrousel automatique -->
+              <div id="expertise-carousel" class="slide-item step-2 bg-style-blue rounded-3xl p-6 shadow-md min-h-[350px] transition-all duration-500">
+                <div id="pole-content" class="transition-all duration-500">
+                  <!-- Contenu injecté par JS -->
                 </div>
               </div>
 
-              <!-- PÔLE 2 : IMPRIMERIE -->
-              <div class="slide-item step-8 bg-style-orange rounded-3xl p-6 shadow-md max-w-7xl mx-auto min-h-[350px]" data-pole="2">
-                <h3 class="text-2xl font-black text-white mb-2">Pôle Imprimerie</h3>
-                <p class="text-xs font-bold uppercase tracking-wider text-white/80 mb-1">Prestations couvertes</p>
-                <p class="text-sm text-white/90 mb-5">Notre équipe intervient avec rigueur sur l'ensemble de ces champs d'application :</p>
-                <div class="space-y-2">
-                  <div class="slide-item step-9 flex items-start space-x-2">
-                    <span class="text-white font-black mt-0.5">✓</span>
-                    <p class="text-sm text-white">Impression tous formats et supports : impression sur tout support, grand format et petit format.</p>
-                  </div>
-                  <div class="slide-item step-10 flex items-start space-x-2">
-                    <span class="text-white font-black mt-0.5">✓</span>
-                    <p class="text-sm text-white">Supports de communication et d'édition : confection de flyers, catalogues et agendas.</p>
-                  </div>
-                  <div class="slide-item step-11 flex items-start space-x-2">
-                    <span class="text-white font-black mt-0.5">✓</span>
-                    <p class="text-sm text-white">Identité et papeterie personnalisée : confection de logos, cartes de visite et cartes de mariage.</p>
-                  </div>
-                  <div class="slide-item step-12 flex items-start space-x-2">
-                    <span class="text-white font-black mt-0.5">✓</span>
-                    <p class="text-sm text-white">Documents et marquage spécialisé : impression de documents officiels et sérigraphie.</p>
-                  </div>
+              <!-- Indicateurs et contrôles -->
+              <div class="flex items-center justify-center space-x-3 mt-4">
+                <button onclick="prevPole()" class="w-8 h-8 rounded-full bg-style-dark text-white flex items-center justify-center hover:bg-style-blue transition-colors">
+                  ←
+                </button>
+                <div id="pole-indicators" class="flex space-x-2">
+                  <!-- Points injectés par JS -->
                 </div>
+                <button onclick="nextPole()" class="w-8 h-8 rounded-full bg-style-dark text-white flex items-center justify-center hover:bg-style-blue transition-colors">
+                  →
+                </button>
               </div>
 
-              <!-- PÔLE 3 : LIBRAIRIE – PAPETERIE -->
-              <div class="slide-item step-13 bg-style-violet rounded-3xl p-6 shadow-md max-w-7xl mx-auto min-h-[350px]" data-pole="3">
-                <h3 class="text-2xl font-black text-white mb-2">Pôle Librairie – Papeterie</h3>
-                <p class="text-xs font-bold uppercase tracking-wider text-white/80 mb-1">Prestations couvertes</p>
-                <p class="text-sm text-white/90 mb-5">Notre équipe intervient avec rigueur sur l'ensemble de ces champs d'application :</p>
-                <div class="space-y-2">
-                  <div class="slide-item step-14 flex items-start space-x-2">
-                    <span class="text-white font-black mt-0.5">✓</span>
-                    <p class="text-sm text-white">Équipement scolaire : fournitures scolaires complètes pour tous cycles, accessoires scolaires pratiques et ergonomiques, sacs et cartables résistants.</p>
-                  </div>
-                  <div class="slide-item step-15 flex items-start space-x-2">
-                    <span class="text-white font-black mt-0.5">✓</span>
-                    <p class="text-sm text-white">Équipement du quotidien et protection : gourdes isothermes et bouteilles réutilisables, parapluies (compacts et grands modèles) et imperméables de protection.</p>
-                  </div>
-                  <div class="slide-item step-16 flex items-start space-x-2">
-                    <span class="text-white font-black mt-0.5">✓</span>
-                    <p class="text-sm text-white">Approvisionnement professionnel : fournitures et consommables de bureau pour entreprises.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         `
       },
@@ -984,6 +943,111 @@
       requestAnimationFrame(animateParticles);
     }
     animateParticles();
+
+    // Carousel Domaines d'Expertise
+    const poles = [
+      {
+        title: 'Pôle Service informatique',
+        color: 'bg-style-blue',
+        textColor: 'text-white',
+        items: [
+          'Vente de matériel informatique : ordinateurs, imprimantes, serveurs, équipements réseaux et accessoires.',
+          'Infogérance informatique : administration, surveillance et maintenance des infrastructures.',
+          'Maintenance et dépannage : maintenance préventive et corrective des équipements informatiques.',
+          'Câblage informatique et téléphonique : câblage réseau (cuivre et fibre optique), prises RJ45, baies et armoires réseau.',
+          'Développement de logiciels et solutions informatiques : applications web et mobiles, logiciels de gestion et automatisation des processus métiers.'
+        ]
+      },
+      {
+        title: 'Pôle Imprimerie',
+        color: 'bg-style-orange',
+        textColor: 'text-white',
+        items: [
+          'Impression tous formats et supports : impression sur tout support, grand format et petit format.',
+          'Supports de communication et d\'édition : confection de flyers, catalogues et agendas.',
+          'Identité et papeterie personnalisée : confection de logos, cartes de visite et cartes de mariage.',
+          'Documents et marquage spécialisé : impression de documents officiels et sérigraphie.'
+        ]
+      },
+      {
+        title: 'Pôle Librairie – Papeterie',
+        color: 'bg-style-violet',
+        textColor: 'text-white',
+        items: [
+          'Équipement scolaire : fournitures scolaires complètes pour tous cycles, accessoires scolaires pratiques et ergonomiques, sacs et cartables résistants.',
+          'Équipement du quotidien et protection : gourdes isothermes et bouteilles réutilisables, parapluies (compacts et grands modèles) et imperméables de protection.',
+          'Approvisionnement professionnel : fournitures et consommables de bureau pour entreprises.'
+        ]
+      }
+    ];
+
+    let currentPole = 0;
+    let poleInterval;
+
+    function renderPole(index) {
+      const carousel = document.getElementById('expertise-carousel');
+      const content = document.getElementById('pole-content');
+      const indicators = document.getElementById('pole-indicators');
+      const pole = poles[index];
+
+      // Mettre à jour la couleur de fond
+      carousel.className = `slide-item step-2 ${pole.color} rounded-3xl p-6 shadow-md min-h-[350px] transition-all duration-500`;
+
+      // Générer le contenu
+      const itemsHtml = pole.items.map(item => `
+        <div class="flex items-start space-x-2">
+          <span class="text-white font-black mt-0.5">✓</span>
+          <p class="text-sm ${pole.textColor}">${item}</p>
+        </div>
+      `).join('');
+
+      content.innerHTML = `
+        <div class="pole-content">
+          <h3 class="text-2xl font-black ${pole.textColor} mb-2">${pole.title}</h3>
+          <p class="text-xs font-bold uppercase tracking-wider ${pole.textColor}/80 mb-1">Prestations couvertes</p>
+          <p class="text-sm ${pole.textColor}/90 mb-5">Notre équipe intervient avec rigueur sur l'ensemble de ces champs d'application :</p>
+          <div class="space-y-2">
+            ${itemsHtml}
+          </div>
+        </div>
+      `;
+
+      // Mettre à jour les indicateurs
+      indicators.innerHTML = poles.map((_, i) => `
+        <button onclick="goToPole(${i})" class="w-2.5 h-2.5 rounded-full transition-all duration-300 ${i === index ? 'bg-white scale-125' : 'bg-white/50 hover:bg-white/75'}"></button>
+      `).join('');
+    }
+
+    function nextPole() {
+      currentPole = (currentPole + 1) % poles.length;
+      renderPole(currentPole);
+      resetAutoPlay();
+    }
+
+    function prevPole() {
+      currentPole = (currentPole - 1 + poles.length) % poles.length;
+      renderPole(currentPole);
+      resetAutoPlay();
+    }
+
+    function goToPole(index) {
+      currentPole = index;
+      renderPole(currentPole);
+      resetAutoPlay();
+    }
+
+    function startAutoPlay() {
+      poleInterval = setInterval(nextPole, 5000);
+    }
+
+    function resetAutoPlay() {
+      clearInterval(poleInterval);
+      startAutoPlay();
+    }
+
+    // Initialiser le carousel
+    renderPole(0);
+    startAutoPlay();
 
     currentStep = 1;
     renderCurrentSlide();
